@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -11,51 +13,80 @@ class TimeRecord{
   
   public:
   
-  TimeRecord(){
-    
-  }
+ 
   
-  void setStart(time_t mtime){start = mtime;}
-  void setEnd(time_t mtime){
-    end = mtime;
+  void setStart(int sTime){start = sTime;}
+  void setEnd(int eTime){
+    end = eTime;
     duration = end - start;
   }
-  time_t getDuration(){ return duration; }
+  int getDuration(){ return duration; }
   
   
   private:
   
-  time_t start;
-  time_t end;
-  time_t duration;
-  time_t dayOfWeek;
-  time_t year;
+  int start;
+  int end;
+  unsigned int duration;
+  unsigned short int dayOfWeek;
+  unsigned short int year;
   
 
   
 };
 
-
+void checkInput(string &input, bool * running, bool * end ){
+  
+  stringstream convert(input);
+  int result;
+  
+  if( !(convert >> result) )
+    result = 0;
+  
+  //cout<<result<<endl;
+  
+  if(result == 1){
+    *running = true;
+    //Initialize record, store starting time.
+    return;
+  }
+  
+  if(result == 2){
+    *end = true;
+    return;
+  }
+  
+}
 
 
 int main(int argc, char *argv[]){
   
+  string choice;
   TimeRecord *record = new TimeRecord();
-  record->setStart(time(0));
-  time_t now = time(0);
-  
-  tm *ltm = localtime(&now);
-  
+  record->setStart((int) time(0));
+  bool end = false;
+  bool running = false;
+ 
   //cout << "Year: "<< 1900 + ltm->tm_year<<endl;
   //cout << "Day of Week: "<< weekday[ltm->tm_wday]<<endl;
   
   //cout<<argc<<"  "<<argv[1]<<endl;
   
-  string buff;
   
-  getline(cin, buff);
+  while(!end){
+    if(!running){
+      cout<<"1. Start\n2. Quit\n\nEntry: ";
+      getline(cin, choice);
+      checkInput(choice, &running, &end);
+    }
+    else{
+      cout<<"Press enter to stop... ";
+      getline(cin, choice);
+      end = true;
+    }
+  }
   
-  record->setEnd(time(0));
+  /*record->setEnd(time(0));
   
   fstream timeLogs;
   
@@ -63,10 +94,9 @@ int main(int argc, char *argv[]){
   
   
   
-  
   timeLogs << "Duration: "<<record->getDuration();
   
   
-  timeLogs.close();
+  timeLogs.close();*/
   return 0;
 }
