@@ -13,7 +13,13 @@ class TimeRecord{
   
   public:
   
- 
+  TimeRecord(){
+    start = 0;
+    end = 0;
+    duration = -1;
+    dayOfWeek = 0;
+    year = 1900;
+  }
   
   void setStart(int sTime){start = sTime;}
   void setEnd(int eTime){
@@ -27,15 +33,16 @@ class TimeRecord{
   
   int start;
   int end;
-  unsigned int duration;
+  int duration;
   unsigned short int dayOfWeek;
   unsigned short int year;
+  unsigned short int month;
   
 
   
 };
 
-void checkInput(string &input, bool * running, bool * end ){
+int checkInput(string input, bool * valid ){
   
   stringstream convert(input);
   int result;
@@ -45,16 +52,30 @@ void checkInput(string &input, bool * running, bool * end ){
   
   //cout<<result<<endl;
   
-  if(result == 1){
-    *running = true;
-    //Initialize record, store starting time.
-    return;
+  if(result == 1 || result == 2){
+    *valid = true;
+    return result;
   }
+  else{
+    cout<<"\nInvalid Input.  Try again.\n";
+    return -1;
+  }
+
+}
+
+void writeLog(TimeRecord record){
   
-  if(result == 2){
-    *end = true;
-    return;
+  ofstream logFile;
+  
+  logFile.open("logs.bin", ios::out | ios::app | ios::binary);
+  
+  if(logFile.is_open()){
+    
+    logFile.write((char*) &record, sizeof(record));
   }
+  else
+    cout<<"Error: File not opened.\n";
+  
   
 }
 
@@ -62,10 +83,10 @@ void checkInput(string &input, bool * running, bool * end ){
 int main(int argc, char *argv[]){
   
   string choice;
+  int convChoice;
   TimeRecord *record = new TimeRecord();
   record->setStart((int) time(0));
-  bool end = false;
-  bool running = false;
+  bool valid = false;
  
   //cout << "Year: "<< 1900 + ltm->tm_year<<endl;
   //cout << "Day of Week: "<< weekday[ltm->tm_wday]<<endl;
@@ -73,30 +94,25 @@ int main(int argc, char *argv[]){
   //cout<<argc<<"  "<<argv[1]<<endl;
   
   
-  while(!end){
-    if(!running){
-      cout<<"1. Start\n2. Quit\n\nEntry: ";
-      getline(cin, choice);
-      checkInput(choice, &running, &end);
-    }
-    else{
-      cout<<"Press enter to stop... ";
-      getline(cin, choice);
-      end = true;
-    }
+  while(!valid){
+    cout<<"1. Start\n2. Quit\n\nEntry: ";
+    getline(cin, choice);
+    convChoice = checkInput(choice, &valid);
   }
   
-  /*record->setEnd(time(0));
+  switch(convChoice){
+    
+    case 1:
+      record->setStart((int) time(0));
+      break;
+    case 2:
+      delete record;
+      break;
+    
+    
+  }
   
-  fstream timeLogs;
+  writeLog(*record);
   
-  timeLogs.open("logs.txt");
-  
-  
-  
-  timeLogs << "Duration: "<<record->getDuration();
-  
-  
-  timeLogs.close();*/
   return 0;
 }
