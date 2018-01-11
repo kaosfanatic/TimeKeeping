@@ -23,7 +23,12 @@ class TimeRecord{
     active = false;
   }
   
-  void toggleActive() {active = !active;};
+  void toggleActive(bool on)  {
+    if(on)
+      active = true; 
+    else 
+      active = false;
+    }
   void setStart(int sTime){start = sTime;}
   void setEnd(int eTime){
     end = eTime;
@@ -39,8 +44,8 @@ class TimeRecord{
   
   bool active;
   
-  int start;
-  int end;
+  long int start;
+  long int end;
   int duration;
   unsigned short int dayOfWeek;
   unsigned short int year;
@@ -71,17 +76,22 @@ int checkInput(string input, bool * valid ){
 
 }
 
-void writeLog(TimeRecord record, bool overwrite = false){
+void writeLog(TimeRecord record, bool overwrite){
   
   ofstream logFile;
   
-  logFile.open("logs.bin", ios::out | ios::ate | ios::binary);
+  logFile.open("logs.bin", ios::out | ios::trunc | ios::binary);
+  
+  /*if(record.activated())
+    cout<<"Open.\n";
+  else
+    cout<<"Closed.\n";*/
   
   if(logFile.is_open()){
-    if(overwrite){
+    /*if(overwrite){
       cout<<"Overwriting..\n";
       logFile.seekp(sizeof(record), ios::end);
-    }
+    }*/
     
     logFile.write((char*) &record, sizeof(record));
   }
@@ -93,29 +103,42 @@ void writeLog(TimeRecord record, bool overwrite = false){
 
 void readLog(TimeRecord * record){
   
+  //cout<<"Enter 'readLog'\n";
   ifstream logFile;
   
-  logFile.open("logs.bin", ios::in | ios::binary | ios::ate);
+  logFile.open("logs.bin", ios::in | ios::binary);
   
   if(logFile.is_open()){
     
-    logFile.read((char*) &(*record), sizeof(*record));
+    //logFile.read((char*) &(*record), sizeof(*record));
     
-    logFile.seekg(sizeof(*record), ios::end);
+    //logFile.seekg(sizeof(*record), ios::end);
     
-    logFile.read((char*) &(*record), sizeof(*record));
+    logFile.read((char*) record, sizeof(*record));
     
   }
   else
     cout<<"Error: File not opened.\n";
   
+  /*if(record->activated())
+    cout<<"Open.\n";
+  else
+    cout<<"Closed.\n";*/
+  
   logFile.close();
+  
+  //cout<<"End 'readLog'\n";
 }
 
 void updateLog(TimeRecord * record){
   
     
   readLog(record);
+  
+  /*if(record->activated())
+    cout<<"Open.\n";
+  else
+    cout<<"Closed.\n";*/
   
   if(!record->activated()){
     cout<<"Inactive.\n";
@@ -124,7 +147,7 @@ void updateLog(TimeRecord * record){
   
     
   record->setEnd((int) time(0));
-  record->toggleActive();
+  record->toggleActive(false);
   
   /*cout<<record->getStart()<<endl<<endl;
   cout<<record->getEnd()<<endl<<endl;
@@ -153,22 +176,22 @@ int main(int argc, char *argv[]){
     
     case 1:
       record->setStart((int) time(0));
-      record->toggleActive();
-      writeLog(*record);
+      record->toggleActive(true);
+      writeLog(*record, false);
       break;
     case 2:
       updateLog(record);
+      cout<<"Duration: "<<record->getDuration()<<" seconds.\n";
       break;
     case 3:
       delete record;
       break;
     
-    
   }
   
-  readLog(record);
+  //readLog(record);
   
-  cout<<"Duration: "<<record->getDuration()<<endl;
+  //cout<<"Duration: "<<record->getDuration()<<endl;
   
   
   
