@@ -9,6 +9,21 @@ using namespace std;
 
 string weekday[7] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
+class FileHeader{
+  
+  public:
+  
+  bool openRecord;
+  bool initialized;
+  int numRecords;
+  
+  void initialize(){
+    openRecord = false;
+    initialized = true;
+    numRecords = 0;
+  }
+};
+
 class TimeRecord{
   
   public:
@@ -20,15 +35,9 @@ class TimeRecord{
     dayOfWeek = 0;
     year = 1900;
     month = 0;
-    active = false;
   }
   
-  void toggleActive(bool on)  {
-    if(on)
-      active = true; 
-    else 
-      active = false;
-    }
+  
   void setStart(int sTime){start = sTime;}
   void setEnd(int eTime){
     end = eTime;
@@ -37,13 +46,10 @@ class TimeRecord{
   int getStart(){ return start; }
   int getEnd(){ return end; }
   int getDuration(){ return duration; }
-  bool activated(){ return active; };
   
   
   private:
-  
-  bool active;
-  
+    
   long int start;
   long int end;
   int duration;
@@ -76,84 +82,130 @@ int checkInput(string input, bool * valid ){
 
 }
 
-void writeLog(TimeRecord record, bool overwrite){
+void writeLog(TimeRecord record, bool overwrite, FileHeader * header){
   
   ofstream logFile;
   
-  logFile.open("logs.bin", ios::out | ios::trunc | ios::binary);
+  logFile.open("logs.bin", ios::out | ios::binary);
   
-  /*if(record.activated())
-    cout<<"Open.\n";
-  else
-    cout<<"Closed.\n";*/
   
   if(logFile.is_open()){
-    /*if(overwrite){
+    if(overwrite){
       cout<<"Overwriting..\n";
-      logFile.seekp(sizeof(record), ios::end);
-    }*/
-    
-    logFile.write((char*) &record, sizeof(record));
+      logFile.seekp(sizeof(*header) + ((header->numRecords-1) * sizeof(record)));
+      logFile.write((char*) &record, sizeof(record));
+      header->openRecord = false;
+    }
+    else{
+      logFile.seekp(sizeof(*header) + (header->numRecords) * sizeof(record));
+      cout<<logFile.tellp()<<endl;
+      header->numRecords++;
+      header->openRecord = true;
+      logFile.write((char*) &record, sizeof(record));
+    }
   }
   else
     cout<<"Error: File not opened.\n";
   
+  cout<<"Pos after writing log: "<<logFile.tellp()<<endl;
+  
   logFile.close();
 }
 
-void readLog(TimeRecord * record){
+void readLog(TimeRecord * record, bool latest, FileHeader * header){
   
-  //cout<<"Enter 'readLog'\n";
   ifstream logFile;
   
   logFile.open("logs.bin", ios::in | ios::binary);
   
   if(logFile.is_open()){
     
-    //logFile.read((char*) &(*record), sizeof(*record));
-    
-    //logFile.seekg(sizeof(*record), ios::end);
-    
+    if(latest){
+      logFile.seekg(sizeof(*header) + ((header->numRecords-1) * sizeof(*record)));
+      cout<<(int) logFile.tellg()<<endl;
+    }
+    //cout<<(int) sizeof(*record)<<" "<<(int) logFile.tellg()<<" "<<(int) sizeof(*header)<<endl;
+      
     logFile.read((char*) record, sizeof(*record));
+    
+    cout<<record->getStart()<<endl;
+        
     
   }
   else
     cout<<"Error: File not opened.\n";
   
-  /*if(record->activated())
-    cout<<"Open.\n";
+  logFile.close();
+  
+}
+
+void readHeader(FileHeader * header){
+  
+  ifstream logFile;
+  
+  logFile.open("logs.bin", ios::in | ios::binary);
+  
+  if(logFile.is_open()){
+    logFile.read((char*) header, sizeof(*header));
+    
+  }
   else
-    cout<<"Closed.\n";*/
+    cout<<"Error: File not opened.\n";
   
   logFile.close();
   
-  //cout<<"End 'readLog'\n";
 }
 
-void updateLog(TimeRecord * record){
+void writeHeader(FileHeader header){
   
-    
-  readLog(record);
+  ofstream logFile;
   
-  /*if(record->activated())
-    cout<<"Open.\n";
+  logFile.open("logs.bin", ios::out | ios::binary);
+  
+  if(logFile.is_open()){
+    //logFile.seekp(0, ios::beg);
+    logFile.write((char*) &header, sizeof(header));
+    cout<<"Pos after writing header: "<<logFile.tellp()<<endl;
+  }
+  
   else
-    cout<<"Closed.\n";*/
+    cout<<"Error: File not opened.\n";
   
-  if(!record->activated()){
+  logFile.seekp(0, ios::end);
+  cout<<logFile.tellp()<<endl;
+  logFile.close();
+  
+}
+
+void updateLog(TimeRecord * record, FileHeader * header){
+  
+  readHeader(header);
+  
+  if(!header->openRecord){
     cout<<"Inactive.\n";
     return;
   }
   
+  readLog(record, true, header);
+  
     
   record->setEnd((int) time(0));
-  record->toggleActive(false);
   
-  /*cout<<record->getStart()<<endl<<endl;
-  cout<<record->getEnd()<<endl<<endl;
-  cout<<record->getDuration()<<endl<<endl;*/
-    
-  writeLog(*record, true);
+  
+  writeLog(*record, true, header);
+  writeHeader(*header);
+}
+
+void checkInit(FileHeader * header){
+
+  readHeader(header);
+  
+  if(!header->initialized){
+    cout<<"Initializing.\n";
+    header->initialize();
+    writeHeader(*header);
+  }
+  
 }
 
 
@@ -161,9 +213,11 @@ int main(int argc, char *argv[]){
   
   string choice;
   int convChoice;
-  TimeRecord *record = new TimeRecord();
-  record->setStart((int) time(0));
+  TimeRecord * record = new TimeRecord;
+  FileHeader * header = new FileHeader;
   bool valid = false;
+  
+  checkInit(header);
   
   
   while(!valid){
@@ -176,24 +230,26 @@ int main(int argc, char *argv[]){
     
     case 1:
       record->setStart((int) time(0));
-      record->toggleActive(true);
-      writeLog(*record, false);
+      cout<<(int) time(0)<<endl;
+      writeLog(*record, false, header);
+      writeHeader(*header);
       break;
     case 2:
-      updateLog(record);
+      updateLog(record, header);
       cout<<"Duration: "<<record->getDuration()<<" seconds.\n";
       break;
     case 3:
-      delete record;
       break;
     
   }
   
-  //readLog(record);
+  readLog(record, true, header);
+  cout<<"start: "<<record->getStart()<<endl<<"end: "<<record->getEnd()<<endl;
+  cout<<"Number of Records: "<<header->numRecords<<endl;
   
-  //cout<<"Duration: "<<record->getDuration()<<endl;
   
-  
+  delete header;
+  delete record;
   
   return 0;
 }
