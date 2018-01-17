@@ -43,9 +43,9 @@ class FileHeader{
   
   void writeHeader(){
     
-    ofstream logFile;
+    fstream logFile;
   
-    logFile.open("logs.bin", ios::out | ios::binary);
+    logFile.open("logs.bin", ios::in | ios::out | ios::binary);
     
     if(logFile.is_open()){
       logFile.write((char*) this, sizeof(*this));
@@ -82,31 +82,42 @@ class TimeRecord{
   }
   
   
-  void writeLog(fstream logFile, streampos position){
+  void writeLog(bool update){
     
+    fstream logFile;
+    
+    logFile.open("logs.bin", ios::in | ios::out | ios::binary);
     
     if(logFile.is_open()){
-      logFile.seekp(0, ios::end);
+      
+      if(update)
+        logFile.seekp(-32, ios::end);
+      else
+        logFile.seekp(0, ios::end);
+      
       logFile.write((char*) this, sizeof(*this));
     }
     else
       cout<<"Error: File not opened.\n";
     
+    logFile.close();
     
   }
   
   
-  void readLog(int position){
+  void readLog(){
   
     ifstream logFile;
     
     logFile.open("logs.bin", ios::in | ios::binary);
     
     if(logFile.is_open()){
-      logFile.seekg(position);
+      logFile.seekg(-32, ios::end);
         
       logFile.read((char*) this, sizeof(*this));
       
+      cout<<this->getStart()<<endl;
+      
     }
     
     else
@@ -116,36 +127,17 @@ class TimeRecord{
     
   }
   
-  void updateLog(){
-    
-    ofstream logFile;
-    
-    logFile.open("logs.bin", ios::out | ios::binary);
-    
-    if(logFile.is_open()){
-      
-      logFile.seekp(sizeof(*this), ios::end);
-      
-      logFile.write((char*) this, sizeof(*this));
-      
-    }
-    
-    else
-      cout<<"Error: File not opened.\n";
-    
-    logFile.close();
-    
-  }
+  
 
-  void setStart(int sTime){start = sTime;}
+  void setStart(int sTime){this->start = sTime;}
   void setEnd(int eTime){
-    end = eTime;
-    duration = end - start;
+    this->end = eTime;
+    this->duration = this->end - this->start;
   }
   
-  int getStart(){ return start; }
-  int getEnd(){ return end; }
-  int getDuration(){ return duration; }
+  int getStart(){ return this->start; }
+  int getEnd(){ return this->end; }
+  int getDuration(){ return this->duration; }
   
   
   private:
@@ -183,6 +175,27 @@ int checkInput(string input, bool * valid ){
 }
 
 
+void listRecords(FileHeader header){
+  
+  TimeRecord record;
+  
+  int i = 0;
+
+  ifstream logFile;
+  
+  logFile.open("logs.bin", ios::in | ios::binary);
+  
+  while(i < header.numRecords){
+    logFile.seekg(sizeof(header) + (i * sizeof(record)));
+    logFile.read((char*) &record, sizeof(record));
+    
+    cout<<"Record "<<++i<<endl<<"Start: "<<record.getStart()<<endl<<"End: "<<record.getEnd()<<endl<<"Duration: "<<record.getDuration()<<endl<<endl;
+   
+  }
+  
+}
+
+
 int main(int argc, char *argv[]){
   
   string choice;
@@ -208,44 +221,44 @@ int main(int argc, char *argv[]){
     
     case 1:{
       
-      TimeRecord records[header.numRecords + 1];
-      header.openRecord = true;
-      
-      for(int i = 0; i<header.numRecords; i++){
-        records[i].readLog(sizeof(header) + (i * sizeof(records[i])));
+      if(header.openRecord){
+        cout<<"Please close current record.\n";
+        break;
       }
-      
-      //cout<<"Read records.\n";
-      records[header.numRecords].setStart(time(0));
-      (header.numRecords)++;
-      header.writeHeader();
-      
-      for(int i = 0; i<header.numRecords; i++)
-        records[i].writeLog();
-      
-      
-      header.readHeader();
-      
-      cout<<"Num records: "<<header.numRecords<<endl;
-      
-      //cout<<"Wrote records.\n";
-      //delete records;
-    
+      else{
+        TimeRecord * record = new TimeRecord;
+        header.openRecord = true;
+        cout<<"size: "<<sizeof(*record)<<endl;
+        //cout<<"Read records.\n";
+        record->setStart((int) time(0));
+        (header.numRecords)++;
+        header.writeHeader();
+        
+        record->writeLog(false);     
+        
+        
+        delete record;
+      }
     }break;
     case 2:{
-      TimeRecord records[header.numRecords];
-      header.openRecord = false;
       
-      for(int i = 0; i<header.numRecords; i++){
-        records[i].readLog(sizeof(header) + i * sizeof(records[i]));
+      if(!header.openRecord){
+        cout<<"Please open a record.\n";
       }
-     
-      records[header.numRecords].setEnd(time(0));
-      header.writeHeader();
-      
-      for(int i = 0; i<header.numRecords; i++)
-        records[i].writeLog();
-      
+      else{
+        TimeRecord * record = new TimeRecord;
+        header.openRecord = false;
+        
+        record->readLog();
+        cout<<record->getStart()<<endl<<record->getEnd()<<endl;
+        record->setEnd((int) time(0));
+        header.writeHeader();
+        cout<<record->getEnd()<<endl;
+        
+        record->writeLog(true);
+        
+        delete record;
+      }
       
     }break;
     case 3:
@@ -253,10 +266,12 @@ int main(int argc, char *argv[]){
     
   }
   
-  header.readHeader();
+  //header.readHeader();
   
   
-  cout<<"Num records: "<<header.numRecords<<endl;
+  cout<<"Num records: "<<header.numRecords<<endl<<endl<<endl;
+  
+  listRecords(header);
   
   
   
