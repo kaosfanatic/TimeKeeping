@@ -116,7 +116,7 @@ class TimeRecord{
         
       logFile.read((char*) this, sizeof(*this));
       
-      cout<<this->getStart()<<endl;
+      //cout<<this->getStart()<<endl;
       
     }
     
@@ -163,7 +163,7 @@ int checkInput(string input, bool * valid ){
   
   //cout<<result<<endl;
   
-  if(result == 1 || result == 2 || result == 3){
+  if(result == 1 || result == 2 || result == 3 || result == 4){
     *valid = true;
     return result;
   }
@@ -189,7 +189,12 @@ void listRecords(FileHeader header){
     logFile.seekg(sizeof(header) + (i * sizeof(record)));
     logFile.read((char*) &record, sizeof(record));
     
-    cout<<"Record "<<++i<<endl<<"Start: "<<record.getStart()<<endl<<"End: "<<record.getEnd()<<endl<<"Duration: "<<record.getDuration()<<endl<<endl;
+    cout<<"Record "<<++i<<endl<<"Start: "<<record.getStart()<<endl<<"End: "<<record.getEnd()<<endl<<"Duration: ";
+    
+    int hours = record.getDuration()/3600;
+    int minutes = (record.getDuration()%3600)/60;
+    
+    cout<<hours<<" hours, "<<minutes<<" minutes.\n";
    
   }
   
@@ -211,7 +216,7 @@ int main(int argc, char *argv[]){
   cout<<"Num records: "<<header.numRecords<<endl;
   
   while(!valid){
-    cout<<"1. Start\n2. End\n3. Quit\n\nEntry: ";
+    cout<<"1. Start\n2. End\n3. List\n4. Quit\n\nEntry: ";
     getline(cin, choice);
     convChoice = checkInput(choice, &valid);
   }
@@ -228,7 +233,7 @@ int main(int argc, char *argv[]){
       else{
         TimeRecord * record = new TimeRecord;
         header.openRecord = true;
-        cout<<"size: "<<sizeof(*record)<<endl;
+        
         //cout<<"Read records.\n";
         record->setStart((int) time(0));
         (header.numRecords)++;
@@ -250,10 +255,10 @@ int main(int argc, char *argv[]){
         header.openRecord = false;
         
         record->readLog();
-        cout<<record->getStart()<<endl<<record->getEnd()<<endl;
+        //cout<<record->getStart()<<endl<<record->getEnd()<<endl;
         record->setEnd((int) time(0));
         header.writeHeader();
-        cout<<record->getEnd()<<endl;
+        //cout<<record->getEnd()<<endl;
         
         record->writeLog(true);
         
@@ -262,6 +267,9 @@ int main(int argc, char *argv[]){
       
     }break;
     case 3:
+      listRecords(header);
+      break;
+    case 4:
       break;
     
   }
@@ -269,9 +277,9 @@ int main(int argc, char *argv[]){
   //header.readHeader();
   
   
-  cout<<"Num records: "<<header.numRecords<<endl<<endl<<endl;
+  //cout<<"Num records: "<<header.numRecords<<endl<<endl<<endl;
   
-  listRecords(header);
+  
   
   
   
