@@ -8,7 +8,6 @@
 using namespace std;
 
 
-string weekday[7] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 class FileHeader{
   
@@ -72,15 +71,6 @@ class TimeRecord{
   
   public:
   
-  TimeRecord(){
-    start = -1;
-    end = -1;
-    duration = -1;
-    dayOfWeek = 0;
-    year = 1900;
-    month = 0;
-  }
-  
   
   void writeLog(bool update){
     
@@ -91,7 +81,7 @@ class TimeRecord{
     if(logFile.is_open()){
       
       if(update)
-        logFile.seekp(-32, ios::end);
+        logFile.seekp(-(sizeof(*this)), ios::end);
       else
         logFile.seekp(0, ios::end);
       
@@ -112,7 +102,7 @@ class TimeRecord{
     logFile.open("logs.bin", ios::in | ios::binary);
     
     if(logFile.is_open()){
-      logFile.seekg(-32, ios::end);
+      logFile.seekg(-(sizeof(*this)), ios::end);
         
       logFile.read((char*) this, sizeof(*this));
       
@@ -129,26 +119,19 @@ class TimeRecord{
   
   
 
-  void setStart(int sTime){this->start = sTime;}
-  void setEnd(int eTime){
-    this->end = eTime;
-    this->duration = this->end - this->start;
-  }
+  void setStart(){  start = time(0); }
+  void setEnd(){  end = time(0); duration = end - start;  }
   
-  int getStart(){ return this->start; }
-  int getEnd(){ return this->end; }
+  time_t getStart(){ return this->start; }
+  time_t getEnd(){ return this->end; }
   int getDuration(){ return this->duration; }
   
   
   private:
     
-  long int start;
-  long int end;
+  time_t start;
+  time_t end;
   int duration;
-  unsigned short int dayOfWeek;
-  unsigned short int year;
-  unsigned short int month;
-  
 
   
 };
@@ -179,6 +162,10 @@ void listRecords(FileHeader header){
   
   TimeRecord record;
   
+  struct tm * start;
+  struct tm * end;
+  time_t temp;
+  
   int i = 0;
 
   ifstream logFile;
@@ -189,12 +176,18 @@ void listRecords(FileHeader header){
     logFile.seekg(sizeof(header) + (i * sizeof(record)));
     logFile.read((char*) &record, sizeof(record));
     
-    cout<<"Record "<<++i<<endl<<"Start: "<<record.getStart()<<endl<<"End: "<<record.getEnd()<<endl<<"Duration: ";
+    temp = record.getStart();
+    start = localtime(&temp);
+    
+    temp = record.getEnd();
+    end = localtime(&temp);
+    
+    cout<<"\n\n\n=========== Record "<<++i<<" ==========="<<endl<<endl<<"Start:\t"<<asctime(start)<<endl<<"End:\t"<<asctime(end)<<endl<<"Duration:     ";
     
     int hours = record.getDuration()/3600;
     int minutes = (record.getDuration()%3600)/60;
     
-    cout<<hours<<" hours, "<<minutes<<" minutes.\n";
+    cout<<hours<<" hours, "<<minutes<<" minutes\n";
    
   }
   
@@ -235,7 +228,7 @@ int main(int argc, char *argv[]){
         header.openRecord = true;
         
         //cout<<"Read records.\n";
-        record->setStart((int) time(0));
+        record->setStart();
         (header.numRecords)++;
         header.writeHeader();
         
@@ -256,7 +249,7 @@ int main(int argc, char *argv[]){
         
         record->readLog();
         //cout<<record->getStart()<<endl<<record->getEnd()<<endl;
-        record->setEnd((int) time(0));
+        record->setEnd();
         header.writeHeader();
         //cout<<record->getEnd()<<endl;
         
