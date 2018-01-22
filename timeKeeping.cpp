@@ -179,16 +179,46 @@ void listRecords(FileHeader header){
     temp = record.getStart();
     start = localtime(&temp);
     
+    
+    cout<<"\n\n\n=========== Record "<<++i<<" ==========="<<endl<<endl<<"Start:\t"<<asctime(start)<<endl;
+    
     temp = record.getEnd();
     end = localtime(&temp);
     
-    cout<<"\n\n\n=========== Record "<<++i<<" ==========="<<endl<<endl<<"Start:\t"<<asctime(start)<<endl<<"End:\t"<<asctime(end)<<endl<<"Duration:     ";
+    cout<<"End:\t"<<asctime(end)<<endl<<"Duration:     ";
     
     int hours = record.getDuration()/3600;
     int minutes = (record.getDuration()%3600)/60;
     
     cout<<hours<<" hours, "<<minutes<<" minutes\n";
    
+  }
+  
+}
+
+int parseArgs(string argument, bool * valid){
+  
+  //cout<<argument<<endl;
+  
+  if(argument == "start"){
+    
+    *valid = true;
+    return 1;
+  }
+  else if(argument == "end"){
+    
+    *valid = true;
+    return 2;
+  }
+  else if(argument == "list"){
+    
+    *valid = true;
+    return 3;
+  }
+  else{
+    *valid = false;
+    cout<<"Invalid argument, opening menu.\n";
+    return -1;
   }
   
 }
@@ -206,7 +236,8 @@ int main(int argc, char *argv[]){
   
   header.checkInit();
   
-  cout<<"Num records: "<<header.numRecords<<endl;
+  if(argc > 1)
+    convChoice = parseArgs((string) argv[1], &valid);
   
   while(!valid){
     cout<<"1. Start\n2. End\n3. List\n4. Quit\n\nEntry: ";
